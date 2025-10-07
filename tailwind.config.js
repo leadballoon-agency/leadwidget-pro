@@ -7,7 +7,15 @@ export default {
   theme: {
     extend: {
       colors: {
-        // YC Construction Brand Colors
+        // Dynamic client branding (uses CSS variables)
+        brand: {
+          primary: 'var(--color-primary, #0066cc)',
+          accent: 'var(--color-accent, #c9a961)',
+          charcoal: 'var(--color-charcoal, #1a1a2e)',
+          cream: 'var(--color-cream, #f8f6f3)',
+          gray: 'var(--color-gray, #6b6b6b)',
+        },
+        // YC Construction Brand Colors (legacy support)
         yc: {
           charcoal: '#1a1a2e',
           cream: '#f8f6f3',

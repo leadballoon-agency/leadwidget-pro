@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion';
 import { AssessmentResult } from '../types';
-import { generateWhatsAppMessage } from '../utils/scoring';
+import { generateWhatsAppURL } from '../utils/scoring';
 import { useAssessmentStore } from '../store/assessmentStore';
+import { useClient } from '../context/ClientContext';
 
 interface ResultsScreenProps {
   result: AssessmentResult;
@@ -9,10 +10,10 @@ interface ResultsScreenProps {
 
 export default function ResultsScreen({ result }: ResultsScreenProps) {
   const answers = useAssessmentStore(state => state.answers);
+  const { client } = useClient();
 
   const handleWhatsAppClick = () => {
-    const message = generateWhatsAppMessage(result, answers);
-    const whatsappUrl = `https://wa.me/447553035444?text=${encodeURIComponent(message)}`;
+    const whatsappUrl = generateWhatsAppURL(result, answers, client);
     window.open(whatsappUrl, '_blank');
   };
 

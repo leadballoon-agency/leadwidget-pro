@@ -1,5 +1,6 @@
 import { Answer, AssessmentResult } from '../types';
 import { packages } from '../data/packages';
+import { ClientConfig } from '../config/clients';
 
 export function calculateScore(answers: Answer[]): AssessmentResult {
   let score = 10;
@@ -136,7 +137,8 @@ function getScoreLabel(score: number): string {
 
 export function generateWhatsAppMessage(
   result: AssessmentResult,
-  answers: Answer[]
+  answers: Answer[],
+  client: ClientConfig
 ): string {
   const budget = getAnswerValue(answers, 'budget');
   const timeline = getAnswerValue(answers, 'timeline');
@@ -167,4 +169,14 @@ ${postcode ? `Postcode: ${postcode}` : ''}
 Here's a photo of my garden:`;
 
   return message;
+}
+
+export function generateWhatsAppURL(
+  result: AssessmentResult,
+  answers: Answer[],
+  client: ClientConfig
+): string {
+  const message = generateWhatsAppMessage(result, answers, client);
+  const encodedMessage = encodeURIComponent(message);
+  return `https://wa.me/${client.contact.whatsapp}?text=${encodedMessage}`;
 }
