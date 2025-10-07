@@ -229,18 +229,14 @@
                                         <p class="text-slate-400">Branded with your colors and ready to deploy</p>
                                     </div>
 
-                                    <!-- Branded Widget Preview -->
-                                    <div id="branded-preview" class="max-w-2xl mx-auto bg-slate-900 border-2 rounded-2xl p-8 mb-6" style="border-color: var(--preview-color, #06b6d4);">
-                                        <div class="text-center">
-                                            <div id="preview-logo" class="hidden w-20 h-20 mx-auto mb-6 rounded-full overflow-hidden">
-                                                <img src="" alt="Company Logo" class="w-full h-full object-cover" />
-                                            </div>
-                                            <h4 class="text-2xl font-bold text-slate-50 mb-4">Get Your Custom Quote</h4>
-                                            <p class="text-slate-300 mb-6">Takes just 60 seconds • No email required</p>
-                                            <button class="px-8 py-4 rounded-xl text-white font-semibold text-lg transition-all hover:scale-105" id="preview-cta" style="background: linear-gradient(135deg, var(--preview-color, #06b6d4) 0%, var(--preview-secondary, #0891b2) 100%);">
-                                                Start Assessment
-                                            </button>
-                                        </div>
+                                    <!-- Live Widget Preview -->
+                                    <div id="branded-preview" class="max-w-2xl mx-auto bg-slate-900 border-2 rounded-2xl overflow-hidden mb-6" style="border-color: var(--preview-color, #06b6d4);">
+                                        <iframe
+                                            id="preview-widget-iframe"
+                                            src="/widget/preview"
+                                            class="w-full h-[600px] border-0"
+                                            title="Widget Preview"
+                                        ></iframe>
                                     </div>
 
                                     <!-- Brand Colors Detected -->
@@ -983,13 +979,10 @@
                 document.getElementById('company-name-display').textContent = data.companyName + "'s";
             }
 
-            // Update preview colors
+            // Update border color
             const previewContainer = document.getElementById('branded-preview');
-            const previewCTA = document.getElementById('preview-cta');
-
             if (data.primaryColor) {
                 previewContainer.style.borderColor = data.primaryColor;
-                previewCTA.style.background = `linear-gradient(135deg, ${data.primaryColor} 0%, ${data.secondaryColor || data.primaryColor} 100%)`;
                 document.documentElement.style.setProperty('--preview-color', data.primaryColor);
                 document.documentElement.style.setProperty('--preview-secondary', data.secondaryColor || data.primaryColor);
 
@@ -1000,12 +993,33 @@
                 document.getElementById('secondary-color-code').textContent = data.secondaryColor || data.primaryColor;
             }
 
-            // Show logo if found
-            if (data.logo) {
-                const logoContainer = document.getElementById('preview-logo');
-                const logoImg = logoContainer.querySelector('img');
-                logoImg.src = data.logo;
-                logoContainer.classList.remove('hidden');
+            // Send config to iframe widget
+            const iframe = document.getElementById('preview-widget-iframe');
+            const widgetConfig = {
+                companyName: data.companyName || 'Your Company',
+                logo: data.logo,
+                primaryColor: data.primaryColor || '#06b6d4',
+                secondaryColor: data.secondaryColor || '#0891b2',
+                email: data.email,
+                phone: data.phone,
+                whatsapp: data.whatsapp,
+                sector: data.sector || 'gardens'
+            };
+
+            // Wait for iframe to load, then send config
+            iframe.onload = function() {
+                iframe.contentWindow.postMessage({
+                    type: 'PREVIEW_CONFIG',
+                    config: widgetConfig
+                }, window.location.origin);
+            };
+
+            // If already loaded, send immediately
+            if (iframe.contentDocument && iframe.contentDocument.readyState === 'complete') {
+                iframe.contentWindow.postMessage({
+                    type: 'PREVIEW_CONFIG',
+                    config: widgetConfig
+                }, window.location.origin);
             }
 
             // Show contact info if found

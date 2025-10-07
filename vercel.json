@@ -4,6 +4,10 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/widget/preview",
+      "destination": "/widget.html"
+    },
+    {
       "source": "/widget/:client",
       "destination": "/widget.html"
     }

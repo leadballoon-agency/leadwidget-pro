@@ -134,6 +134,93 @@ export function getActiveClientConfig(): ClientConfig {
     return clientFromPath;
   }
 
+  // Check for preview config in URL or sessionStorage
+  const previewConfig = getPreviewConfig();
+  if (previewConfig) {
+    return previewConfig;
+  }
+
   // Fallback to default client
   return clients[DEFAULT_CLIENT];
+}
+
+// Create preview config from scraped data
+export function createPreviewConfig(scrapedData: {
+  companyName?: string;
+  logo?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  email?: string;
+  phone?: string;
+  whatsapp?: string;
+}): ClientConfig {
+  const timestamp = Date.now();
+
+  return {
+    id: `preview-${timestamp}`,
+    name: scrapedData.companyName || 'Your Company',
+    sector: 'gardens', // Default to gardens
+    branding: {
+      primaryColor: scrapedData.primaryColor || '#06b6d4',
+      accentColor: scrapedData.secondaryColor || '#0891b2',
+      charcoalColor: '#1a1a2e',
+      creamColor: '#f8f6f0',
+      grayColor: '#6b7280',
+      logo: scrapedData.logo,
+      companyName: scrapedData.companyName || 'Your Company',
+    },
+    contact: {
+      whatsapp: scrapedData.whatsapp || '447700000000',
+      email: scrapedData.email,
+      phone: scrapedData.phone,
+    },
+    tracking: {},
+    customization: {
+      heroHeadline: `Transform Your Garden\nWith ${scrapedData.companyName || 'Us'}`,
+      heroSubheadline: 'Get a personalized assessment in just 60 seconds',
+      ctaText: 'Start Assessment',
+    },
+  };
+}
+
+// Store preview config in sessionStorage
+export function storePreviewConfig(config: ClientConfig): void {
+  if (typeof window !== 'undefined') {
+    sessionStorage.setItem('preview-config', JSON.stringify(config));
+  }
+}
+
+// Get preview config from sessionStorage or URL
+export function getPreviewConfig(): ClientConfig | null {
+  if (typeof window === 'undefined') return null;
+
+  // Check sessionStorage first
+  const stored = sessionStorage.getItem('preview-config');
+  if (stored) {
+    try {
+      return JSON.parse(stored) as ClientConfig;
+    } catch (e) {
+      console.error('Failed to parse preview config:', e);
+    }
+  }
+
+  // Check URL parameters
+  const params = new URLSearchParams(window.location.search);
+  const configParam = params.get('config');
+  if (configParam) {
+    try {
+      return JSON.parse(decodeURIComponent(configParam)) as ClientConfig;
+    } catch (e) {
+      console.error('Failed to parse config from URL:', e);
+    }
+  }
+
+  return null;
+}
+
+// Clear preview config
+export function clearPreviewConfig(): void {
+  if (typeof window !== 'undefined') {
+    sessionStorage.removeItem('preview-config');
+  }
 }

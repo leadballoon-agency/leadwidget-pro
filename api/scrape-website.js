@@ -95,6 +95,7 @@ function extractBrandingData(firecrawlData) {
     whatsapp: null,
     email: null,
     phone: null,
+    sector: null,
   };
 
   // Extract company name from title or metadata
@@ -119,7 +120,42 @@ function extractBrandingData(firecrawlData) {
   result.email = extractEmail(html, markdown);
   result.phone = extractPhone(html, markdown);
 
+  // Detect sector from content
+  result.sector = detectSector(html, markdown, metadata);
+
   return result;
+}
+
+// Detect business sector from website content
+function detectSector(html, markdown, metadata) {
+  const content = (html + markdown + (metadata?.description || '')).toLowerCase();
+
+  const sectors = {
+    gardens: ['garden', 'landscaping', 'landscape', 'outdoor', 'lawn', 'patio', 'decking'],
+    kitchens: ['kitchen', 'worktop', 'cabinet', 'appliance'],
+    bathrooms: ['bathroom', 'shower', 'bath', 'wet room', 'ensuite'],
+    extensions: ['extension', 'building', 'construction', 'renovation', 'loft conversion'],
+    driveways: ['driveway', 'paving', 'tarmac', 'resin', 'block paving']
+  };
+
+  let maxScore = 0;
+  let detectedSector = 'gardens'; // Default
+
+  for (const [sector, keywords] of Object.entries(sectors)) {
+    let score = 0;
+    for (const keyword of keywords) {
+      const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
+      const matches = content.match(regex);
+      score += matches ? matches.length : 0;
+    }
+
+    if (score > maxScore) {
+      maxScore = score;
+      detectedSector = sector;
+    }
+  }
+
+  return detectedSector;
 }
 
 // Extract logo URL from HTML
