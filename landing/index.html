@@ -243,9 +243,27 @@
                                         </div>
                                     </div>
 
+                                    <!-- Brand Colors Detected -->
+                                    <div id="colors-display" class="max-w-2xl mx-auto bg-slate-800/50 border border-slate-700 rounded-xl p-6 mb-6">
+                                        <p class="text-sm text-slate-400 mb-4">✨ Brand Colors Detected:</p>
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div class="text-center">
+                                                <div id="primary-color-swatch" class="w-full h-16 rounded-lg mb-2" style="background: var(--preview-color, #06b6d4);"></div>
+                                                <p class="text-xs text-slate-500">Primary Color</p>
+                                                <p id="primary-color-code" class="text-sm text-slate-300 font-mono">#06b6d4</p>
+                                            </div>
+                                            <div class="text-center">
+                                                <div id="secondary-color-swatch" class="w-full h-16 rounded-lg mb-2" style="background: var(--preview-secondary, #0891b2);"></div>
+                                                <p class="text-xs text-slate-500">Secondary Color</p>
+                                                <p id="secondary-color-code" class="text-sm text-slate-300 font-mono">#0891b2</p>
+                                            </div>
+                                        </div>
+                                        <p class="text-xs text-slate-500 mt-4 text-center">These colors will be used throughout your widget</p>
+                                    </div>
+
                                     <!-- Contact Info Found -->
                                     <div id="contact-info-display" class="hidden max-w-2xl mx-auto bg-slate-800/50 border border-slate-700 rounded-xl p-6 mb-6">
-                                        <p class="text-sm text-slate-400 mb-3">We found your contact information:</p>
+                                        <p class="text-sm text-slate-400 mb-3">📞 Contact Information Found:</p>
                                         <div class="grid md:grid-cols-2 gap-3 text-sm">
                                             <div id="email-found" class="hidden flex items-center gap-2 text-slate-300">
                                                 <svg class="w-4 h-4 text-cyan-500" fill="currentColor" viewBox="0 0 20 20">
@@ -974,6 +992,12 @@
                 previewCTA.style.background = `linear-gradient(135deg, ${data.primaryColor} 0%, ${data.secondaryColor || data.primaryColor} 100%)`;
                 document.documentElement.style.setProperty('--preview-color', data.primaryColor);
                 document.documentElement.style.setProperty('--preview-secondary', data.secondaryColor || data.primaryColor);
+
+                // Update color swatches and codes
+                document.getElementById('primary-color-swatch').style.background = data.primaryColor;
+                document.getElementById('primary-color-code').textContent = data.primaryColor;
+                document.getElementById('secondary-color-swatch').style.background = data.secondaryColor || data.primaryColor;
+                document.getElementById('secondary-color-code').textContent = data.secondaryColor || data.primaryColor;
             }
 
             // Show logo if found
