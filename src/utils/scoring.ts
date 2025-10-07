@@ -138,7 +138,7 @@ function getScoreLabel(score: number): string {
 export function generateWhatsAppMessage(
   result: AssessmentResult,
   answers: Answer[],
-  client: ClientConfig
+  _client: ClientConfig
 ): string {
   const budget = getAnswerValue(answers, 'budget');
   const timeline = getAnswerValue(answers, 'timeline');
