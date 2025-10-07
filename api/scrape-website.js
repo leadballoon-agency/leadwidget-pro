@@ -29,7 +29,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'API key not configured' });
     }
 
-    // Use Firecrawl scrape endpoint with extract format
+    // Use Firecrawl scrape endpoint with LLM extraction
     const firecrawlResponse = await fetch('https://api.firecrawl.dev/v1/scrape', {
       method: 'POST',
       headers: {
@@ -38,9 +38,45 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         url: websiteUrl,
-        formats: ['markdown', 'html', 'rawHtml'],
-        onlyMainContent: false, // We want full page to find contact info
-        waitFor: 2000, // Wait for dynamic content
+        formats: [
+          'html',
+          'markdown',
+          {
+            type: 'extract',
+            schema: {
+              companyName: {
+                type: 'string',
+                description: 'The company or business name from the website title or header'
+              },
+              primaryColor: {
+                type: 'string',
+                description: 'The primary brand color used on the website (hex code format like #0066cc)'
+              },
+              secondaryColor: {
+                type: 'string',
+                description: 'The secondary or accent color used on the website (hex code format)'
+              },
+              logo: {
+                type: 'string',
+                description: 'The URL of the company logo image'
+              },
+              email: {
+                type: 'string',
+                description: 'The contact email address found on the website'
+              },
+              phone: {
+                type: 'string',
+                description: 'The phone number found on the website'
+              },
+              whatsapp: {
+                type: 'string',
+                description: 'The WhatsApp number or wa.me link found on the website'
+              }
+            }
+          }
+        ],
+        onlyMainContent: false,
+        waitFor: 2000,
       }),
     });
 
@@ -76,7 +112,12 @@ export default async function handler(req, res) {
 // Extract branding data from Firecrawl response
 function extractBrandingData(firecrawlData) {
   const { data } = firecrawlData;
-  const html = data?.rawHtml || data?.html || '';
+
+  // Get LLM-extracted data (this is the good stuff!)
+  const extracted = data?.extract || {};
+
+  // Fallback to manual extraction if needed
+  const html = data?.html || '';
   const markdown = data?.markdown || '';
   const metadata = data?.metadata || {};
 
@@ -90,32 +131,37 @@ function extractBrandingData(firecrawlData) {
     phone: null,
   };
 
-  // Extract company name from title or metadata
+  // Use LLM-extracted data first, fallback to manual extraction
   result.companyName =
+    extracted.companyName ||
     metadata.title?.split('|')[0]?.trim() ||
     metadata.title?.split('-')[0]?.trim() ||
-    metadata.ogTitle ||
     'Your Company';
 
-  // Extract logo from metadata or HTML
   result.logo =
+    extracted.logo ||
     metadata.ogImage ||
-    metadata.logo ||
     extractLogoFromHtml(html);
 
-  // Extract colors from HTML/CSS
-  const colors = extractColorsFromHtml(html);
-  result.primaryColor = colors.primary;
-  result.secondaryColor = colors.secondary;
+  result.primaryColor =
+    extracted.primaryColor ||
+    extractColorsFromHtml(html).primary;
 
-  // Extract WhatsApp number
-  result.whatsapp = extractWhatsApp(html, markdown);
+  result.secondaryColor =
+    extracted.secondaryColor ||
+    extractColorsFromHtml(html).secondary;
 
-  // Extract email
-  result.email = extractEmail(html, markdown);
+  result.whatsapp =
+    extracted.whatsapp ||
+    extractWhatsApp(html, markdown);
 
-  // Extract phone
-  result.phone = extractPhone(html, markdown);
+  result.email =
+    extracted.email ||
+    extractEmail(html, markdown);
+
+  result.phone =
+    extracted.phone ||
+    extractPhone(html, markdown);
 
   return result;
 }
