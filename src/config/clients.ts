@@ -97,20 +97,29 @@ export function getClientConfig(clientId: string): ClientConfig | null {
 export function getClientFromPath(): ClientConfig | null {
   const path = window.location.pathname;
 
+  console.log('[ClientConfig] Path:', path);
+
   // Match patterns like /gardens/yc-construction or /yc-construction
   const match = path.match(/\/(?:gardens|kitchens|bathrooms|extensions|driveways)\/([^/]+)/);
 
   if (match) {
     const clientId = match[1];
-    return getClientConfig(clientId);
+    console.log('[ClientConfig] Matched client ID:', clientId);
+    const config = getClientConfig(clientId);
+    console.log('[ClientConfig] Found config:', config?.name || 'NOT FOUND');
+    return config;
   }
 
   // Fallback: try first segment
   const segments = path.split('/').filter(Boolean);
+  console.log('[ClientConfig] Segments:', segments);
   if (segments.length > 0) {
-    return getClientConfig(segments[0]);
+    const config = getClientConfig(segments[0]);
+    console.log('[ClientConfig] Fallback config:', config?.name || 'NOT FOUND');
+    return config;
   }
 
+  console.log('[ClientConfig] No client found, returning null');
   return null;
 }
 
