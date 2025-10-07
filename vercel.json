@@ -4,12 +4,8 @@
   "framework": "vite",
   "rewrites": [
     {
-      "source": "/",
-      "destination": "/landing/index.html"
-    },
-    {
       "source": "/widget/:client",
-      "destination": "/index.html"
+      "destination": "/widget.html"
     }
   ]
 }
