@@ -29,7 +29,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'API key not configured' });
     }
 
-    // Use Firecrawl scrape endpoint with LLM extraction
+    // Use Firecrawl scrape endpoint with extraction
     const firecrawlResponse = await fetch('https://api.firecrawl.dev/v1/scrape', {
       method: 'POST',
       headers: {
@@ -38,45 +38,15 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         url: websiteUrl,
-        formats: [
-          'html',
-          'markdown',
-          {
-            type: 'extract',
-            schema: {
-              companyName: {
-                type: 'string',
-                description: 'The company or business name from the website title or header'
-              },
-              primaryColor: {
-                type: 'string',
-                description: 'The primary brand color used on the website (hex code format like #0066cc)'
-              },
-              secondaryColor: {
-                type: 'string',
-                description: 'The secondary or accent color used on the website (hex code format)'
-              },
-              logo: {
-                type: 'string',
-                description: 'The URL of the company logo image'
-              },
-              email: {
-                type: 'string',
-                description: 'The contact email address found on the website'
-              },
-              phone: {
-                type: 'string',
-                description: 'The phone number found on the website'
-              },
-              whatsapp: {
-                type: 'string',
-                description: 'The WhatsApp number or wa.me link found on the website'
-              }
-            }
-          }
-        ],
+        formats: ['html', 'markdown'],
         onlyMainContent: false,
         waitFor: 2000,
+        actions: [
+          {
+            type: 'wait',
+            milliseconds: 2000
+          }
+        ]
       }),
     });
 
@@ -113,10 +83,6 @@ export default async function handler(req, res) {
 function extractBrandingData(firecrawlData) {
   const { data } = firecrawlData;
 
-  // Get LLM-extracted data (this is the good stuff!)
-  const extracted = data?.extract || {};
-
-  // Fallback to manual extraction if needed
   const html = data?.html || '';
   const markdown = data?.markdown || '';
   const metadata = data?.metadata || {};
@@ -131,37 +97,27 @@ function extractBrandingData(firecrawlData) {
     phone: null,
   };
 
-  // Use LLM-extracted data first, fallback to manual extraction
+  // Extract company name from title or metadata
   result.companyName =
-    extracted.companyName ||
-    metadata.title?.split('|')[0]?.trim() ||
-    metadata.title?.split('-')[0]?.trim() ||
+    metadata?.title?.split('|')[0]?.split('-')[0]?.split('–')[0]?.trim() ||
+    metadata?.ogTitle?.split('|')[0]?.split('-')[0]?.trim() ||
     'Your Company';
 
+  // Extract logo
   result.logo =
-    extracted.logo ||
-    metadata.ogImage ||
+    metadata?.ogImage ||
+    metadata?.image ||
     extractLogoFromHtml(html);
 
-  result.primaryColor =
-    extracted.primaryColor ||
-    extractColorsFromHtml(html).primary;
+  // Extract colors from HTML/CSS
+  const colors = extractColorsFromHtml(html);
+  result.primaryColor = colors.primary;
+  result.secondaryColor = colors.secondary;
 
-  result.secondaryColor =
-    extracted.secondaryColor ||
-    extractColorsFromHtml(html).secondary;
-
-  result.whatsapp =
-    extracted.whatsapp ||
-    extractWhatsApp(html, markdown);
-
-  result.email =
-    extracted.email ||
-    extractEmail(html, markdown);
-
-  result.phone =
-    extracted.phone ||
-    extractPhone(html, markdown);
+  // Extract contact info
+  result.whatsapp = extractWhatsApp(html, markdown);
+  result.email = extractEmail(html, markdown);
+  result.phone = extractPhone(html, markdown);
 
   return result;
 }
@@ -189,22 +145,55 @@ function extractLogoFromHtml(html) {
 // Extract colors from HTML/CSS
 function extractColorsFromHtml(html) {
   const colors = {
-    primary: '#0066cc',
-    secondary: '#c9a961',
+    primary: '#06b6d4', // Default cyan
+    secondary: '#0891b2', // Default darker cyan
   };
 
-  // Extract inline styles and style tags
-  const hexColors = html.match(/#[0-9a-f]{6}/gi) || [];
-  const rgbColors = html.match(/rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)/gi) || [];
+  // Extract hex colors from HTML
+  const hexMatches = html.match(/#([0-9a-f]{6}|[0-9a-f]{3})/gi) || [];
 
-  // Get unique colors and pick most common ones
-  const allColors = [...new Set([...hexColors, ...rgbColors.map(rgbToHex)])];
+  // Expand 3-digit hex to 6-digit
+  const hexColors = hexMatches.map(color => {
+    if (color.length === 4) {
+      return '#' + color[1] + color[1] + color[2] + color[2] + color[3] + color[3];
+    }
+    return color;
+  });
 
-  if (allColors.length > 0) {
-    colors.primary = allColors[0];
+  // Extract RGB colors
+  const rgbMatches = html.match(/rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)/gi) || [];
+  const rgbColors = rgbMatches.map(rgbToHex);
+
+  // Combine and filter out common colors (white, black, grays)
+  const allColors = [...hexColors, ...rgbColors]
+    .map(c => c.toLowerCase())
+    .filter(c => {
+      // Filter out whites, blacks, and grays
+      if (c === '#ffffff' || c === '#fff') return false;
+      if (c === '#000000' || c === '#000') return false;
+      if (c.match(/#([0-9a-f])\1{5}/)) return false; // Pure grays like #333333
+      return true;
+    });
+
+  // Get unique colors
+  const uniqueColors = [...new Set(allColors)];
+
+  // Count occurrences to find most common
+  const colorCounts = {};
+  allColors.forEach(color => {
+    colorCounts[color] = (colorCounts[color] || 0) + 1;
+  });
+
+  // Sort by frequency
+  const sortedColors = Object.entries(colorCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(entry => entry[0]);
+
+  if (sortedColors.length > 0) {
+    colors.primary = sortedColors[0];
   }
-  if (allColors.length > 1) {
-    colors.secondary = allColors[1];
+  if (sortedColors.length > 1) {
+    colors.secondary = sortedColors[1];
   }
 
   return colors;
