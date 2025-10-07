@@ -10,10 +10,6 @@
     {
       "source": "/widget/:client",
       "destination": "/index.html"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
     }
   ]
 }
