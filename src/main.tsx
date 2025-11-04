@@ -13,6 +13,13 @@ window.addEventListener('message', (event) => {
   if (event.data.type === 'PREVIEW_CONFIG') {
     console.log('[Preview] Received config:', event.data.config);
 
+    // Check if config already exists to prevent infinite reload loop
+    const existingConfig = sessionStorage.getItem('preview_client_config');
+    if (existingConfig) {
+      console.log('[Preview] Config already exists, skipping reload');
+      return;
+    }
+
     // Create full client config from scraped data
     const previewConfig = createPreviewConfig(event.data.config);
 
